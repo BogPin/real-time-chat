@@ -2,64 +2,43 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"github.com/BogPin/real-time-chat/entities"
-	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/BogPin/real-time-chat/controllers"
+	"github.com/BogPin/real-time-chat/models/user"
+	"github.com/BogPin/real-time-chat/services"
+	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi user")
-}
-
 func main() {
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASS")
-	dbname := os.Getenv("DB_NAME")
-	host := "localhost"
-	db, err := dbInit(user, password, host, dbname)
+	godotenv.Load()
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASS")
+	dbName := os.Getenv("DB_NAME")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	db, err := dbInit(dbUser, dbPassword, dbHost, dbPort, dbName)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	http.HandleFunc("/", handler)
-	http.HandleFunc("/user", handleUser)
-	http.ListenAndServe(":8080", nil)
+	router := mux.NewRouter()
 
+	userStorer := user.UserStorer{DB: db}
+	userService := services.UserService{UserStorer: &userStorer}
+	usersRouter := router.PathPrefix("/users").Subrouter()
+	controllers.RegisterUsersRoutes(usersRouter, userService)
+
+	http.ListenAndServe("localhost:8080", router)
 }
 
-func dbInit(user, password, host, dbname string) (*sql.DB, error) {
-	conStr := fmt.Sprintf("user=%s password=%s host=%s dbname=%s sslmode=disable", user, password, host, dbname)
+func dbInit(user, password, host, port, dbname string) (*sql.DB, error) {
+	conStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable", user, password, host, port, dbname)
 	return sql.Open("postgres", conStr)
-}
-
-func handleUser(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		// Обработка GET запроса...
-
-	case http.MethodPost:
-		userDto := entities.UserDTO{}
-		err := json.NewDecoder(r.Body).Decode(&userDto)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		user := entities.
-
-	case http.MethodPatch:
-		//
-
-	case http.MethodOptions:
-		w.Header().Set("Allow", "GET, POST, OPTIONS")
-		w.WriteHeader(http.StatusNoContent)
-
-	default:
-		w.Header().Set("Allow", "GET, POST, OPTIONS")
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-	}
 }
