@@ -16,22 +16,22 @@ type ChatService struct {
 	ChatStorer *chat.ChatStorer
 }
 
-func (cs *ChatService) GetAllChats() ([]chat.Chat, error) {
+func (cs ChatService) GetAllChats() ([]chat.Chat, error) {
 	return cs.ChatStorer.GetAllChats()
 }
 
-func (cs *ChatService) GetChat(id int) (*chat.Chat, error) {
+func (cs ChatService) GetChat(id int) (*chat.Chat, error) {
 	return cs.ChatStorer.GetChat(id)
 }
 
-func (cs *ChatService) Update(chat chat.Chat) (*chat.Chat, error) {
+func (cs ChatService) Update(chat chat.Chat) (*chat.Chat, error) {
 	return cs.ChatStorer.Update(chat)
 }
 
-func (cs *ChatService) Create(chatDTO chat.ChatDTO) (*chat.Chat, error) {
+func (cs ChatService) Create(chatDTO chat.ChatDTO) (*chat.Chat, error) {
 	return cs.ChatStorer.Create(chatDTO)
 }
 
-func (cs *ChatService) Delete(id int) (*chat.Chat, error) {
+func (cs ChatService) Delete(id int) (*chat.Chat, error) {
 	return cs.ChatStorer.Delete(id)
 }

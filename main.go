@@ -39,7 +39,7 @@ func main() {
 	chatStorer := chat.ChatStorer{DB: db}
 	chatService := services.ChatService{ChatStorer: &chatStorer}
 	chatsRouter := router.PathPrefix("/chats").Subrouter()
-	controllers.RegisterChatsRoutes(chatsRouter, &chatService)
+	controllers.RegisterChatsRoutes(chatsRouter, chatService)
 
 	http.ListenAndServe("localhost:8080", router)
 }
