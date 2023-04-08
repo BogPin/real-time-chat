@@ -12,29 +12,15 @@ import (
 )
 
 func RegisterUsersRoutes(router *mux.Router, service services.User) {
-	router.Path("/").HandlerFunc(getUser(service)).Methods("GET")
 	router.Path("/").HandlerFunc(createUser(service)).Methods("POST")
 	router.Path("/").HandlerFunc(updateUser(service)).Methods("PATCH")
-	router.Path("/").HandlerFunc(deleteUser(service)).Methods("DELETE")
 	router.Path("/{id}").HandlerFunc(getUser(service)).Methods("GET")
 	router.Path("/{id}").HandlerFunc(deleteUser(service)).Methods("DELETE")
 }
 
 func getUser(service services.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		urlId, ok := mux.Vars(r)["id"]
-		queryId := r.URL.Query().Get("id")
-		if ok && queryId != "" && urlId != queryId {
-			http.Error(w, "id in url and id in query are incompatible", http.StatusBadRequest)
-			return
-		}
-		var id int
-		var err error
-		if ok {
-			id, err = strconv.Atoi(urlId)
-		} else {
-			id, err = strconv.Atoi(queryId)
-		}
+		id, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -101,19 +87,7 @@ func updateUser(service services.User) http.HandlerFunc {
 
 func deleteUser(service services.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		urlId, ok := mux.Vars(r)["id"]
-		queryId := r.URL.Query().Get("id")
-		if ok && queryId != "" && urlId != queryId {
-			http.Error(w, "id in url and id in query are incompatible", http.StatusBadRequest)
-			return
-		}
-		var id int
-		var err error
-		if ok {
-			id, err = strconv.Atoi(urlId)
-		} else {
-			id, err = strconv.Atoi(queryId)
-		}
+		id, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
