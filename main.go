@@ -3,10 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/BogPin/real-time-chat/models/chat"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/BogPin/real-time-chat/models/chat"
 
 	"github.com/BogPin/real-time-chat/controllers"
 	"github.com/BogPin/real-time-chat/models/user"
@@ -41,7 +42,7 @@ func main() {
 	chatsRouter := router.PathPrefix("/chats").Subrouter()
 	controllers.RegisterChatsRoutes(chatsRouter, chatService)
 
-	http.ListenAndServe("localhost:8080", router)
+	http.ListenAndServe(":8080", router)
 }
 
 func dbInit(user, password, host, port, dbname string) (*sql.DB, error) {
