@@ -10,6 +10,7 @@ import (
 	"github.com/BogPin/real-time-chat/models/chat"
 
 	"github.com/BogPin/real-time-chat/controllers"
+	"github.com/BogPin/real-time-chat/models/message"
 	"github.com/BogPin/real-time-chat/models/user"
 	"github.com/BogPin/real-time-chat/services"
 	"github.com/gorilla/mux"
@@ -42,6 +43,10 @@ func main() {
 	chatsRouter := router.PathPrefix("/chats").Subrouter()
 	controllers.RegisterChatsRoutes(chatsRouter, chatService)
 
+	messageStorer := message.MessageStorer{DB: db}
+	messageService := services.MessageService{MessageStorer: &messageStorer}
+	messagesRouter := router.PathPrefix("/messages").Subrouter()
+	controllers.RegisterMessagesRoutes(messagesRouter, messageService)
 	http.ListenAndServe(":8080", router)
 }
 
