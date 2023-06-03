@@ -31,7 +31,7 @@ func main() {
 	}
 	defer db.Close()
 
-	router := mux.NewRouter()
+	router := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	userStorer := user.UserStorer{DB: db}
 	userService := services.UserService{UserStorer: &userStorer}
