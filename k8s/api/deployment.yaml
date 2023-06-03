@@ -3,18 +3,17 @@ kind: Deployment
 metadata:
   name: api-deployment
 spec:
-  replicas: 1                      # кількість екземплярів Pod, що буде створено цим Deployment
+  replicas: 2
   selector:
     matchLabels:
-      app: api               # селектор по якому Deployment зв'язаний з Pod
+      app: api
   template:
     metadata:
      labels:
-       app: api               # мітка Pod по якому вона буде зв'язана з Deployment та Service
+       app: api
     spec:
       containers:
-        - image: api:01       # образ Docker
-          imagePullPolicy: Never   # вказує k8s, що образ не потрібно завантажувати (варто використовувати лише для випадків, коли образи локальні)
-          name: api           # ім'я контейнеру
+        - image: europe-central2-docker.pkg.dev/neon-essence-368418/real-time-chat/gochat-api:01
+          name: api
           ports:
-            - containerPort: 8080  # порт по якому можна звертатись до поди
+            - containerPort: 8080

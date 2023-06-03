@@ -3,9 +3,9 @@ kind: Service
 metadata:
   name: api-service
 spec:
-  type: ClusterIP      # тип доступу до сервісу, ClusterIp - значення за замовчуванням і може бути пропущене
+  type: ClusterIP
   ports:
-    - port: 80         # порт по якому можна звератись до сервісу
-      targetPort: 8080 # порт контейнера
+    - port: 80
+      targetPort: 8080
   selector:
-    app: api      # селектор, всі Pod з даним селектором, будуть підключені до даного сервісу
+    app: api
