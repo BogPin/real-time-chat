@@ -13,8 +13,8 @@ spec:
        app: api               # мітка Pod по якому вона буде зв'язана з Deployment та Service
     spec:
       containers:
-        - image: back:01       # образ Docker
+        - image: api:01       # образ Docker
           imagePullPolicy: Never   # вказує k8s, що образ не потрібно завантажувати (варто використовувати лише для випадків, коли образи локальні)
-          name: backend           # ім'я контейнеру
+          name: api           # ім'я контейнеру
           ports:
             - containerPort: 8080  # порт по якому можна звертатись до поди
