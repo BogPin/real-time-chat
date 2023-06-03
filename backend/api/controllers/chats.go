@@ -3,11 +3,12 @@ package controllers
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/BogPin/real-time-chat/models/chat"
-	"github.com/BogPin/real-time-chat/services"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
+
+	"github.com/BogPin/real-time-chat/backend/api/models/chat"
+	"github.com/BogPin/real-time-chat/backend/api/services"
+	"github.com/gorilla/mux"
 )
 
 func RegisterChatsRoutes(router *mux.Router, service services.Chat) {

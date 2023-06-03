@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/BogPin/real-time-chat/models/chat"
+	"github.com/BogPin/real-time-chat/backend/api/models/chat"
 
-	"github.com/BogPin/real-time-chat/controllers"
-	"github.com/BogPin/real-time-chat/models/message"
-	"github.com/BogPin/real-time-chat/models/user"
-	"github.com/BogPin/real-time-chat/services"
+	"github.com/BogPin/real-time-chat/backend/api/controllers"
+	"github.com/BogPin/real-time-chat/backend/api/models/message"
+	"github.com/BogPin/real-time-chat/backend/api/models/user"
+	"github.com/BogPin/real-time-chat/backend/api/services"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"

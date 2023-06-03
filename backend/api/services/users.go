@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/BogPin/real-time-chat/models/user"
+	"github.com/BogPin/real-time-chat/backend/api/models/user"
 )
 
 type User interface {

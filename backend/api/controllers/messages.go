@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/BogPin/real-time-chat/models/message"
-	"github.com/BogPin/real-time-chat/services"
+	"github.com/BogPin/real-time-chat/backend/api/models/message"
+	"github.com/BogPin/real-time-chat/backend/api/services"
 	"github.com/gorilla/mux"
 )
 

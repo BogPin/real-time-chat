@@ -1,4 +1,4 @@
-module github.com/BogPin/real-time-chat
+module github.com/BogPin/real-time-chat/backend/api
 
 go 1.17
 

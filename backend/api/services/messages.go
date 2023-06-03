@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/BogPin/real-time-chat/models/message"
+	"github.com/BogPin/real-time-chat/backend/api/models/message"
 )
 
 type Message interface {
