@@ -12,7 +12,6 @@ import (
 )
 
 func RegisterUsersRoutes(router *mux.Router, service services.User) {
-	router.Path("/").HandlerFunc(createUser(service)).Methods("POST")
 	router.Path("/").HandlerFunc(updateUser(service)).Methods("PATCH")
 	router.Path("/{id}").HandlerFunc(getUser(service)).Methods("GET")
 	router.Path("/{id}").HandlerFunc(deleteUser(service)).Methods("DELETE")
@@ -28,27 +27,6 @@ func getUser(service services.User) http.HandlerFunc {
 		user, err := service.GetOne(id)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = json.NewEncoder(w).Encode(user)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-}
-
-func createUser(service services.User) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var userDto user.UserDTO
-		err := json.NewDecoder(r.Body).Decode(&userDto)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		user, err := service.Create(userDto)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		err = json.NewEncoder(w).Encode(user)

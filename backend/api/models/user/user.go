@@ -56,14 +56,6 @@ func (us *UserStorer) GetOne(id int) (*User, error) {
 	return &user, err
 }
 
-func (us *UserStorer) Create(dto UserDTO) (*User, error) {
-	var user User
-	query := "INSERT INTO users (tag, name, password, description) VALUES ($1, $2, $3, $4) RETURNING *"
-	row := us.DB.QueryRow(query, dto.Tag, dto.Name, dto.Password, dto.Description)
-	err := row.Scan(&user.Id, &user.Tag, &user.Name, &user.Password, &user.Description)
-	return &user, err
-}
-
 func (us *UserStorer) Update(user User) (*User, error) {
 	var newUser User
 	query := "UPDATE users SET tag=$1, name=$2, password=$3, description=$4 WHERE id=$5 RETURNING *"

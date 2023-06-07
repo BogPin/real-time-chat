@@ -7,7 +7,6 @@ import (
 type User interface {
 	GetAll() ([]user.User, error)
 	GetOne(id int) (*user.User, error)
-	Create(userDTO user.UserDTO) (*user.User, error)
 	Update(user user.User) (*user.User, error)
 	Delete(id int) (*user.User, error)
 }
@@ -22,11 +21,6 @@ func (us UserService) GetAll() ([]user.User, error) {
 
 func (us UserService) GetOne(id int) (*user.User, error) {
 	return us.UserStorer.GetOne(id)
-}
-
-func (us UserService) Create(userDTO user.UserDTO) (*user.User, error) {
-	//TODO: encrypt password
-	return us.UserStorer.Create(userDTO)
 }
 
 func (us UserService) Update(user user.User) (*user.User, error) {
