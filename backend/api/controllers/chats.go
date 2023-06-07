@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -69,7 +70,7 @@ func updateChat(service services.Chat) http.HandlerFunc {
 		newChat, err := service.Update(chat)
 
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}

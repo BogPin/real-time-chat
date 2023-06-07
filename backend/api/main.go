@@ -47,7 +47,16 @@ func main() {
 	messageService := services.MessageService{MessageStorer: &messageStorer}
 	messagesRouter := router.PathPrefix("/messages").Subrouter()
 	controllers.RegisterMessagesRoutes(messagesRouter, messageService)
-	http.ListenAndServe(":8080", router)
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("PORT env variable is missing")
+	}
+
+	err = http.ListenAndServe(":"+port, router)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func dbInit(user, password, host, port, dbname string) (*sql.DB, error) {

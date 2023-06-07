@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -48,7 +49,7 @@ func updateUser(service services.User) http.HandlerFunc {
 		newUser, err := service.Update(user)
 
 		if err != nil {
-			if err == sql.ErrNoRows {
+			if errors.Is(err, sql.ErrNoRows) {
 				http.Error(w, err.Error(), http.StatusNotFound)
 				return
 			}
