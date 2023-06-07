@@ -20,11 +20,11 @@ import (
 
 func main() {
 	godotenv.Load()
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASS")
-	dbName := os.Getenv("DB_NAME")
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
+	dbUser := getEnvVar("DB_USER")
+	dbPassword := getEnvVar("DB_PASS")
+	dbName := getEnvVar("DB_NAME")
+	dbHost := getEnvVar("DB_HOST")
+	dbPort := getEnvVar("DB_PORT")
 	db, err := dbInit(dbUser, dbPassword, dbHost, dbPort, dbName)
 	if err != nil {
 		log.Fatal(err)
@@ -48,11 +48,7 @@ func main() {
 	messagesRouter := router.PathPrefix("/messages").Subrouter()
 	controllers.RegisterMessagesRoutes(messagesRouter, messageService)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		log.Fatal("PORT env variable is missing")
-	}
-
+	port := getEnvVar("PORT")
 	err = http.ListenAndServe(":"+port, router)
 	if err != nil {
 		log.Fatal(err)
@@ -62,4 +58,12 @@ func main() {
 func dbInit(user, password, host, port, dbname string) (*sql.DB, error) {
 	conStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable", user, password, host, port, dbname)
 	return sql.Open("postgres", conStr)
+}
+
+func getEnvVar(name string) string {
+	variable := os.Getenv(name)
+	if variable == "" {
+		log.Fatalf("%s env variable is missing", name)
+	}
+	return variable
 }
