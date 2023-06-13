@@ -1,6 +1,8 @@
 package chat
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 type ChatStorer struct {
 	DB *sql.DB
@@ -9,20 +11,56 @@ type ChatStorer struct {
 type Chat struct {
 	Id        int    `json:"id"`
 	Title     string `json:"title"`
-	CreatorId int    `json:"creator_id"`
-	CreatedAt string `json:"created_at"`
+	CreatorId int    `json:"creatorId"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type ChatDTO struct {
 	Title     string `json:"title"`
-	CreatorId int    `json:"creator_id"`
-	CreatedAt string `json:"created_at"`
+	CreatorId int    `json:"creatorId"`
 }
 
-func (cs *ChatStorer) GetAllChats() ([]Chat, error) {
-	chats := make([]Chat, 0)
-	query := "SELECT * FROM chats"
-	rows, err := cs.DB.Query(query)
+type ChatFromRequest struct {
+	Title string `json:"title"`
+}
+
+func (cs *ChatStorer) Create(dto ChatDTO) (*Chat, error) {
+	var chat Chat
+	query := "INSERT INTO chats (title, creator_id) VALUES ($1, $2) RETURNING *"
+	row := cs.DB.QueryRow(query, dto.Title, dto.CreatorId)
+	err := row.Scan(&chat.Id, &chat.Title, &chat.CreatorId, &chat.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &chat, nil
+}
+
+func (cs *ChatStorer) CreateInTx(tx *sql.Tx, dto ChatDTO) (*Chat, error) {
+	var chat Chat
+	query := "INSERT INTO chats (title, creator_id) VALUES ($1, $2) RETURNING *"
+	row := tx.QueryRow(query, dto.Title, dto.CreatorId)
+	err := row.Scan(&chat.Id, &chat.Title, &chat.CreatorId, &chat.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &chat, nil
+}
+
+func (cs *ChatStorer) GetOne(id int) (*Chat, error) {
+	var chat Chat
+	query := "SELECT * FROM chats WHERE id = $1"
+	row := cs.DB.QueryRow(query, id)
+	err := row.Scan(&chat.Id, &chat.Title, &chat.CreatorId, &chat.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &chat, nil
+}
+
+func (cs *ChatStorer) GetUserChats(userId int) ([]Chat, error) {
+	userChats := make([]Chat, 0)
+	query := "SELECT c.* FROM chats c JOIN participants p ON c.id = p.chat_id WHERE p.user_id = $1"
+	rows, err := cs.DB.Query(query, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -32,41 +70,29 @@ func (cs *ChatStorer) GetAllChats() ([]Chat, error) {
 		if err != nil {
 			return nil, err
 		}
-		chats = append(chats, chat)
+		userChats = append(userChats, chat)
 	}
-	return chats, nil
+	return userChats, nil
 }
 
-func (cs *ChatStorer) GetChat(id int) (*Chat, error) {
-	var chat Chat
-	query := "SELECT * FROM chats WHERE id = $1"
-	row := cs.DB.QueryRow(query, id)
-	err := row.Scan(&chat.Id, &chat.Title, &chat.CreatorId, &chat.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-	return &chat, err
-}
 func (cs *ChatStorer) Update(chat Chat) (*Chat, error) {
 	var updChat Chat
 	query := "UPDATE chats SET title=$1 WHERE id=$2 RETURNING *"
 	row := cs.DB.QueryRow(query, chat.Title, chat.Id)
 	err := row.Scan(&updChat.Id, &updChat.Title, &updChat.CreatorId, &updChat.CreatedAt)
-	return &chat, err
-}
-
-func (cs *ChatStorer) Create(tdo ChatDTO) (*Chat, error) {
-	var chat Chat
-	query := "INSERT INTO chats (title, creator_id, created_at) VALUES ($1, $2, $3)"
-	row := cs.DB.QueryRow(query, tdo.Title, tdo.CreatorId, tdo.CreatedAt)
-	err := row.Scan(&chat.Id, &chat.Title, &chat.CreatorId, &chat.CreatedAt)
-	return &chat, err
+	if err != nil {
+		return nil, err
+	}
+	return &updChat, nil
 }
 
 func (cs *ChatStorer) Delete(id int) (*Chat, error) {
 	var chat Chat
-	query := "DELETE FROM chats WHERE id = $1"
+	query := "DELETE FROM chats WHERE id = $1 RETURNING *"
 	row := cs.DB.QueryRow(query, id)
 	err := row.Scan(&chat.Id, &chat.Title, &chat.CreatorId, &chat.CreatedAt)
-	return &chat, err
+	if err != nil {
+		return nil, err
+	}
+	return &chat, nil
 }

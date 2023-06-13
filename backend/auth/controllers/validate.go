@@ -26,17 +26,17 @@ func (vte ValidateTokenEndpoint) Handle(w http.ResponseWriter, r *http.Request) 
 	var body tokenBody
 	jsonErr := json.NewDecoder(r.Body).Decode(&body)
 	if jsonErr != nil {
-		writeError(w, utils.NewHttpError(jsonErr, http.StatusBadRequest))
+		WriteError(w, utils.NewHttpError(jsonErr, http.StatusBadRequest))
 		return
 	}
 	tokenPayload, err := vte.jwtStrat.DecodeJWT(body.Token)
 	if err != nil {
-		writeError(w, err)
+		WriteError(w, err)
 		return
 	}
 	jsonErr = json.NewEncoder(w).Encode(tokenPayload)
 	if jsonErr != nil {
-		writeError(w, utils.NewHttpError(jsonErr, http.StatusInternalServerError))
+		WriteError(w, utils.NewHttpError(jsonErr, http.StatusInternalServerError))
 		return
 	}
 }

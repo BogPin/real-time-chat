@@ -1,40 +1,36 @@
 package controllers
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/BogPin/real-time-chat/backend/api/models/user"
 	"github.com/BogPin/real-time-chat/backend/api/services"
+	"github.com/BogPin/real-time-chat/backend/api/utils"
 	"github.com/gorilla/mux"
 )
 
 func RegisterUsersRoutes(router *mux.Router, service services.User) {
-	router.Path("/").HandlerFunc(updateUser(service)).Methods("PATCH")
-	router.Path("/{id}").HandlerFunc(getUser(service)).Methods("GET")
-	router.Path("/{id}").HandlerFunc(deleteUser(service)).Methods("DELETE")
+	router.Path("").HandlerFunc(getUser(service)).Methods("GET")
+	router.Path("").HandlerFunc(updateUser(service)).Methods("PATCH")
+	router.Path("").HandlerFunc(deleteUser(service)).Methods("DELETE")
 }
 
 func getUser(service services.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.Atoi(mux.Vars(r)["id"])
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
+		if !ok {
+			WriteError(w, ErrNoUserPayloadInContext)
 			return
 		}
-		user, err := service.GetOne(id)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		user, httpErr := service.GetOne(payload.UserId)
+		if httpErr != nil {
+			WriteError(w, httpErr)
 			return
 		}
-		err = json.NewEncoder(w).Encode(user)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+
+		writeResponce(w, user)
 	}
 }
 
@@ -43,43 +39,47 @@ func updateUser(service services.User) http.HandlerFunc {
 		var user user.User
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))
 			return
 		}
-		newUser, err := service.Update(user)
 
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
-			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
+		if !ok {
+			WriteError(w, ErrNoUserPayloadInContext)
 			return
 		}
-		err = json.NewEncoder(w).Encode(newUser)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		newUser, httpErr := service.Update(payload.UserId, user)
+		if httpErr != nil {
+			WriteError(w, httpErr)
 			return
 		}
+
+		writeResponce(w, newUser)
 	}
 }
 
 func deleteUser(service services.User) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.Atoi(mux.Vars(r)["id"])
+		var user user.User
+		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))
 			return
 		}
-		user, err := service.Delete(id)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
+		if !ok {
+			WriteError(w, ErrNoUserPayloadInContext)
 			return
 		}
-		err = json.NewEncoder(w).Encode(user)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		dltUser, httpErr := service.Delete(payload.UserId, user)
+		if httpErr != nil {
+			WriteError(w, httpErr)
 			return
 		}
+
+		writeResponce(w, dltUser)
 	}
 }

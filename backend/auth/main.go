@@ -55,8 +55,8 @@ func dbInit(user, password, host, port, dbname string) (*sql.DB, error) {
 }
 
 func getEnvVar(name string) string {
-	variable := os.Getenv(name)
-	if variable == "" {
+	variable, present := os.LookupEnv(name)
+	if !present {
 		log.Fatalf("%s env variable is missing", name)
 	}
 	return variable

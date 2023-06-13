@@ -21,7 +21,7 @@ type Endpoint interface {
 	Add(*mux.Router)
 }
 
-func writeError(w http.ResponseWriter, err utils.HttpError) {
+func WriteError(w http.ResponseWriter, err utils.HttpError) {
 	w.WriteHeader(err.Status())
 	json.NewEncoder(w).Encode(errorResponce{err.Message()})
 }

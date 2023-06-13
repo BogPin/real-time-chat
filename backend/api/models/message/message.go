@@ -2,35 +2,66 @@ package message
 
 import "database/sql"
 
+const PAGE_SIZE = 50
+
 type MessageStorer struct {
 	DB *sql.DB
 }
 
 type Message struct {
-	Id       int    `json:"id"`
-	SenderId int    `json:"sender_id"`
-	ChatId   int    `json:"chat_id"`
-	Type     string `json:"type"`
-	Text     string `json:"text"`
+	Id        int    `json:"id"`
+	SenderId  int    `json:"senderId"`
+	ChatId    int    `json:"chatId"`
+	Type      string `json:"type"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type MessageDTO struct {
-	SenderId int    `json:"sender_id"`
-	ChatId   int    `json:"chat_id"`
+	SenderId int    `json:"senderId"`
+	ChatId   int    `json:"chatId"`
 	Type     string `json:"type"`
-	Text     string `json:"text"`
+	Content  string `json:"content"`
 }
 
-func (cs *MessageStorer) GetAllMessages() ([]Message, error) {
+type MessageFromRequest struct {
+	ChatId  int    `json:"chatId"`
+	Type    string `json:"type"`
+	Content string `json:"content"`
+}
+
+func (cs *MessageStorer) Create(tdo MessageDTO) (*Message, error) {
+	var message Message
+	query := "INSERT INTO messages (sender_id, chat_id, type, content) VALUES ($1, $2, $3, $4) RETURNING *"
+	row := cs.DB.QueryRow(query, tdo.SenderId, tdo.ChatId, tdo.Type, tdo.Content)
+	err := row.Scan(&message.Id, &message.SenderId, &message.ChatId, &message.Type, &message.Content, &message.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &message, nil
+}
+
+func (cs *MessageStorer) GetOne(id int) (*Message, error) {
+	var message Message
+	query := "SELECT * FROM messages WHERE id = $1"
+	row := cs.DB.QueryRow(query, id)
+	err := row.Scan(&message.Id, &message.SenderId, &message.ChatId, &message.Type, &message.Content)
+	if err != nil {
+		return nil, err
+	}
+	return &message, nil
+}
+
+func (cs *MessageStorer) GetChatMessages(chatId, page int) ([]Message, error) {
 	messages := make([]Message, 0)
-	query := "SELECT * FROM messages"
-	rows, err := cs.DB.Query(query)
+	query := "SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
+	rows, err := cs.DB.Query(query, chatId, PAGE_SIZE, page*PAGE_SIZE)
 	if err != nil {
 		return nil, err
 	}
 	for rows.Next() {
 		var message Message
-		err := rows.Scan(&message.Id, &message.SenderId, &message.ChatId, &message.Type, &message.Text)
+		err := rows.Scan(&message.Id, &message.SenderId, &message.ChatId, &message.Type, &message.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -39,36 +70,29 @@ func (cs *MessageStorer) GetAllMessages() ([]Message, error) {
 	return messages, nil
 }
 
-func (cs *MessageStorer) GetMessage(id int) (*Message, error) {
-	var message Message
-	query := "SELECT * FROM messages WHERE id = $1"
-	row := cs.DB.QueryRow(query, id)
-	err := row.Scan(&message.Id, &message.SenderId, &message.ChatId, &message.Type, &message.Text)
+func (cs *MessageStorer) Update(message Message) (*Message, error) {
+	var updMessage Message
+	query := "UPDATE messages SET content=$1 WHERE id=$2 RETURNING *"
+	row := cs.DB.QueryRow(query, message.Content, message.Id)
+	err := row.Scan(&updMessage.Id, &updMessage.SenderId, &updMessage.ChatId, &updMessage.Type, &updMessage.Content)
 	if err != nil {
 		return nil, err
 	}
-	return &message, err
-}
-func (cs *MessageStorer) Update(message Message) (*Message, error) {
-	var updMessage Message
-	query := "UPDATE messages SET title=$1 WHERE id=$2 RETURNING *"
-	row := cs.DB.QueryRow(query, message.Text, message.Id)
-	err := row.Scan(&updMessage.Id, &updMessage.SenderId, &updMessage.ChatId, &updMessage.Type, &updMessage.Text)
-	return &message, err
-}
-
-func (cs *MessageStorer) Create(tdo MessageDTO) (*Message, error) {
-	var message Message
-	query := "INSERT INTO messages (title, creator_id, created_at) VALUES ($1, $2, $3)"
-	row := cs.DB.QueryRow(query, tdo.Text, tdo.SenderId, tdo.ChatId, tdo.Type)
-	err := row.Scan(&message.Id, &message.SenderId, &message.ChatId, &message.Type, &message.Text)
-	return &message, err
+	return &updMessage, nil
 }
 
 func (cs *MessageStorer) Delete(id int) (*Message, error) {
 	var message Message
 	query := "DELETE FROM messages WHERE id = $1"
 	row := cs.DB.QueryRow(query, id)
-	err := row.Scan(&message.Id, &message.SenderId, &message.ChatId, &message.Type, &message.Text)
-	return &message, err
+	err := row.Scan(&message.Id, &message.SenderId, &message.ChatId, &message.Type, &message.Content)
+	if err != nil {
+		return nil, err
+	}
+	return &message, nil
+}
+
+func (cs *MessageStorer) DeleteAll(chatId int) (sql.Result, error) {
+	query := "DELETE FROM messages WHERE chat_id = $1"
+	return cs.DB.Exec(query, chatId)
 }

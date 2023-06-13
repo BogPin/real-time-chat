@@ -1,33 +1,62 @@
 package services
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"net/http"
+
 	"github.com/BogPin/real-time-chat/backend/api/models/user"
+	"github.com/BogPin/real-time-chat/backend/api/utils"
 )
 
 type User interface {
-	GetAll() ([]user.User, error)
-	GetOne(id int) (*user.User, error)
-	Update(user user.User) (*user.User, error)
-	Delete(id int) (*user.User, error)
+	GetOne(userId int) (*user.User, utils.HttpError)
+	Update(userId int, user user.User) (*user.User, utils.HttpError)
+	Delete(userId int, user user.User) (*user.User, utils.HttpError)
 }
 
 type UserService struct {
 	UserStorer *user.UserStorer
 }
 
-func (us UserService) GetAll() ([]user.User, error) {
-	return us.UserStorer.GetAll()
+func (us UserService) GetOne(userId int) (*user.User, utils.HttpError) {
+	user, err := us.UserStorer.GetOne(userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err := fmt.Errorf("no user with id %d", userId)
+			return nil, utils.NewHttpError(err, http.StatusNotFound)
+		}
+		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
+	}
+	return user, nil
 }
 
-func (us UserService) GetOne(id int) (*user.User, error) {
-	return us.UserStorer.GetOne(id)
-}
-
-func (us UserService) Update(user user.User) (*user.User, error) {
+func (us UserService) Update(userId int, user user.User) (*user.User, utils.HttpError) {
 	//TODO: update only non nullish fields
-	return us.UserStorer.Update(user)
+	if userId != user.Id {
+		err := errors.New("cannot update other users")
+		return nil, utils.NewHttpError(err, http.StatusForbidden)
+	}
+
+	newUser, err := us.UserStorer.Update(user)
+	if err != nil {
+		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
+	}
+
+	return newUser, nil
 }
 
-func (us UserService) Delete(id int) (*user.User, error) {
-	return us.UserStorer.Delete(id)
+func (us UserService) Delete(userId int, user user.User) (*user.User, utils.HttpError) {
+	if userId != user.Id {
+		err := errors.New("cannot delete other users")
+		return nil, utils.NewHttpError(err, http.StatusForbidden)
+	}
+
+	deletedUser, err := us.UserStorer.Delete(userId)
+	if err != nil {
+		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
+	}
+
+	return deletedUser, nil
 }

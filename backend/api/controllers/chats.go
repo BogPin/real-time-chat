@@ -1,61 +1,69 @@
 package controllers
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/BogPin/real-time-chat/backend/api/models/chat"
 	"github.com/BogPin/real-time-chat/backend/api/services"
+	"github.com/BogPin/real-time-chat/backend/api/utils"
 	"github.com/gorilla/mux"
 )
 
 func RegisterChatsRoutes(router *mux.Router, service services.Chat) {
-	router.Path("/").HandlerFunc(createChat(service)).Methods("POST")
-	router.Path("/").HandlerFunc(updateChat(service)).Methods("PATCH")
+	router.Path("").HandlerFunc(createChat(service)).Methods("POST")
 	router.Path("/{id}").HandlerFunc(getChat(service)).Methods("GET")
+	router.Path("/{id}").HandlerFunc(updateChat(service)).Methods("PATCH")
 	router.Path("/{id}").HandlerFunc(deleteChat(service)).Methods("DELETE")
+}
+
+func createChat(service services.Chat) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var chatWithTitle chat.ChatFromRequest
+		err := json.NewDecoder(r.Body).Decode(&chatWithTitle)
+		if err != nil {
+			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))
+			return
+		}
+
+		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
+		if !ok {
+			WriteError(w, ErrNoUserPayloadInContext)
+			return
+		}
+
+		chat, httpErr := service.Create(payload.UserId, chatWithTitle)
+		if httpErr != nil {
+			WriteError(w, httpErr)
+			return
+		}
+
+		writeResponce(w, chat)
+	}
 }
 
 func getChat(service services.Chat) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.Atoi(mux.Vars(r)["id"])
+		chatId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))
 			return
 		}
-		chat, err := service.GetChat(id)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		err = json.NewEncoder(w).Encode(chat)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-}
 
-func deleteChat(service services.Chat) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id, err := strconv.Atoi(mux.Vars(r)["id"])
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
+		if !ok {
+			WriteError(w, ErrNoUserPayloadInContext)
 			return
 		}
-		chat, err := service.Delete(id)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		chat, httpErr := service.GetOne(payload.UserId, chatId)
+		if httpErr != nil {
+			WriteError(w, httpErr)
 			return
 		}
-		err = json.NewEncoder(w).Encode(chat)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+
+		writeResponce(w, chat)
 	}
 }
 
@@ -64,44 +72,46 @@ func updateChat(service services.Chat) http.HandlerFunc {
 		var chat chat.Chat
 		err := json.NewDecoder(r.Body).Decode(&chat)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))
 			return
 		}
-		newChat, err := service.Update(chat)
 
-		if err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				http.Error(w, err.Error(), http.StatusNotFound)
-				return
-			}
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
+		if !ok {
+			WriteError(w, ErrNoUserPayloadInContext)
 			return
 		}
-		err = json.NewEncoder(w).Encode(newChat)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		updChat, httpErr := service.Update(payload.UserId, chat)
+		if httpErr != nil {
+			WriteError(w, httpErr)
 			return
 		}
+
+		writeResponce(w, updChat)
 	}
 }
 
-func createChat(service services.Chat) http.HandlerFunc {
+func deleteChat(service services.Chat) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var chatDTO chat.ChatDTO
-		err := json.NewDecoder(r.Body).Decode(&chatDTO)
+		chatId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))
 			return
 		}
-		chat, err := service.Create(chatDTO)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+
+		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
+		if !ok {
+			WriteError(w, ErrNoUserPayloadInContext)
 			return
 		}
-		err = json.NewEncoder(w).Encode(chat)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+
+		dltChat, httpErr := service.Delete(payload.UserId, chatId)
+		if httpErr != nil {
+			WriteError(w, httpErr)
 			return
 		}
+
+		writeResponce(w, dltChat)
 	}
 }

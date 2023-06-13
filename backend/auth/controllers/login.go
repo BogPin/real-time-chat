@@ -29,23 +29,23 @@ func (le LoginEndpoint) Handle(w http.ResponseWriter, r *http.Request) {
 	var creds user.Credentials
 	jsonErr := json.NewDecoder(r.Body).Decode(&creds)
 	if jsonErr != nil {
-		writeError(w, utils.NewHttpError(jsonErr, http.StatusBadRequest))
+		WriteError(w, utils.NewHttpError(jsonErr, http.StatusBadRequest))
 		return
 	}
 	user, err := le.service.ValidateUser(creds)
 	if err != nil {
-		writeError(w, err)
+		WriteError(w, err)
 		return
 	}
 	token, err := le.jwtStrat.CreateJWT(user.Id)
 	if err != nil {
-		writeError(w, err)
+		WriteError(w, err)
 		return
 	}
 	resp := tokenBody{token}
 	jsonErr = json.NewEncoder(w).Encode(resp)
 	if jsonErr != nil {
-		writeError(w, utils.NewHttpError(jsonErr, http.StatusInternalServerError))
+		WriteError(w, utils.NewHttpError(jsonErr, http.StatusInternalServerError))
 		return
 	}
 }

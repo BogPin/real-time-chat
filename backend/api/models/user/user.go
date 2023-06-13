@@ -27,24 +27,6 @@ type UserDTO struct {
 	Description string `json:"description"`
 }
 
-func (us *UserStorer) GetAll() ([]User, error) {
-	users := make([]User, 0)
-	query := "SELECT * FROM users"
-	rows, err := us.DB.Query(query)
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		var user User
-		err := rows.Scan(&user.Id, &user.Tag, &user.Name, &user.Password, &user.Description)
-		if err != nil {
-			return nil, err
-		}
-		users = append(users, user)
-	}
-	return users, nil
-}
-
 func (us *UserStorer) GetOne(id int) (*User, error) {
 	var user User
 	query := "SELECT * FROM users where id = $1"
@@ -53,21 +35,27 @@ func (us *UserStorer) GetOne(id int) (*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &user, err
+	return &user, nil
 }
 
 func (us *UserStorer) Update(user User) (*User, error) {
-	var newUser User
+	var updUser User
 	query := "UPDATE users SET tag=$1, name=$2, password=$3, description=$4 WHERE id=$5 RETURNING *"
 	row := us.DB.QueryRow(query, user.Tag, user.Name, user.Password, user.Description, user.Id)
-	err := row.Scan(&newUser.Id, &newUser.Tag, &newUser.Name, &newUser.Password, &newUser.Description)
-	return &user, err
+	err := row.Scan(&updUser.Id, &updUser.Tag, &updUser.Name, &updUser.Password, &updUser.Description)
+	if err != nil {
+		return nil, err
+	}
+	return &updUser, nil
 }
 
 func (us *UserStorer) Delete(id int) (*User, error) {
-	var user User
+	var dltUser User
 	query := "DELETE FROM users WHERE id=$1 RETURNING *"
 	row := us.DB.QueryRow(query, id)
-	err := row.Scan(&user.Id, &user.Tag, &user.Name, &user.Password, &user.Description)
-	return &user, err
+	err := row.Scan(&dltUser.Id, &dltUser.Tag, &dltUser.Name, &dltUser.Password, &dltUser.Description)
+	if err != nil {
+		return nil, err
+	}
+	return &dltUser, nil
 }

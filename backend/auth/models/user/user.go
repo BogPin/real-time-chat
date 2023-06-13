@@ -29,8 +29,8 @@ func (s Storer) GetUser(username string) (User, error) {
 
 func (s Storer) CreateUser(creds Credentials) (User, error) {
 	var usr User
-	query := "insert into users (tag, password) value ($1, $2) returning id, tag, password"
-	row := s.DB.QueryRow(query, creds.Username, creds.PasswordHash)
+	query := "insert into users (tag, name, password) values ($1, $2, $3) returning id, tag, password"
+	row := s.DB.QueryRow(query, creds.Username, creds.Username, creds.PasswordHash)
 	err := row.Scan(&usr.Id, &usr.Tag, &usr.PasswordHash)
 	return usr, err
 }
