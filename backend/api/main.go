@@ -36,9 +36,9 @@ func main() {
 	defer db.Close()
 
 	router := mux.NewRouter()
-	router.Use(controllers.GetAuthMiddleware(controllers.GetTokenFromHeader))
 
 	apiRouter := router.PathPrefix("/api").Subrouter()
+	apiRouter.Use(controllers.GetAuthMiddleware(controllers.GetTokenFromHeader))
 
 	userStorer := user.UserStorer{DB: db}
 	userService := services.UserService{UserStorer: &userStorer}
@@ -60,14 +60,12 @@ func main() {
 	participantRouter := apiRouter.PathPrefix("/participants").Subrouter()
 	controllers.RegisterParticipantRoutes(participantRouter, participantService)
 
-	port := ":" + getEnvVar("PORT")
-	go func() {
-		err = http.ListenAndServe(port, router)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}()
 	wsServer := wss.NewWsServer()
+	wsRouter := router.PathPrefix("/ws").Subrouter()
+	authMiddleware := controllers.GetAuthMiddleware(controllers.GetTokenFromQuery)
+	wsRouter.Use(authMiddleware)
+	wsRouter.Path("").HandlerFunc(wsServer.HttpHandler).Methods("GET")
+
 	wsServer.HandleConnection(func(socket *wss.Socket) {
 		chats, err := chatService.GetUserChats(socket.UserId)
 		if err != nil {
@@ -77,7 +75,7 @@ func main() {
 			socket.Join(chat.Id)
 		}
 
-		socket.On("message", func(data interface{}) {
+		socket.On("message", func(data any) {
 			msg := message.MessageFromRequest{}
 			if err := mapstructure.Decode(data, &msg); err != nil {
 				socket.Message(wss.NewErrorInvalidDataFormatMessage(msg))
@@ -87,7 +85,7 @@ func main() {
 				socket.Message(wss.NewErrorMessage("not allowed to write to that chat"))
 				return
 			}
-			chat, err := wsServer.Rooms.Get(msg.ChatId)
+			chatRoom, err := wsServer.Rooms.Get(msg.ChatId)
 			if err != nil {
 				socket.Message(wss.NewErrorMessage(err.Error()))
 				return
@@ -97,13 +95,27 @@ func main() {
 				socket.Message(wss.NewErrorMessage(httpErr.Message()))
 				return
 			}
-			chat.Send(socket.UserId, wss.NewMessage("message", fullMessage))
+			chatRoom.Send(socket.UserId, wss.NewMessage("message", fullMessage))
 			socket.Message(wss.NewMessage("message", fullMessage))
+		})
+
+		socket.On("disconnect", func(data any) {
+			chatRooms := wsServer.Rooms.GetAllForUser(socket.UserId)
+			for _, chatRoom := range chatRooms {
+				msg := message.MessageDTO{
+					SenderId: socket.UserId,
+					ChatId:   chatRoom.Id,
+					Type:     "text",
+					Content:  "bye, I leave",
+				}
+				chatRoom.Send(socket.UserId, wss.NewMessage("message", msg))
+			}
 		})
 
 	})
 
-	err = wsServer.ListenAndServe(":8082", "/ws")
+	port := ":" + getEnvVar("PORT")
+	err = http.ListenAndServe(port, router)
 	if err != nil {
 		log.Fatal(err)
 	}

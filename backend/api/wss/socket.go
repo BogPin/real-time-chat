@@ -20,11 +20,19 @@ func NewSocket(userId int, conn *websocket.Conn, server *WsServer) *Socket {
 	}
 }
 
+func (s *Socket) PostDisconnect() {
+	s.server.Conns.Remove(s.UserId)
+	chats := s.server.Rooms.GetAllForUser(s.UserId)
+	for _, chat := range chats {
+		chat.Remove(s.UserId)
+	}
+}
+
 func (s *Socket) Disconnect(code int, reason string) {
 	cm := websocket.FormatCloseMessage(code, reason)
 	s.conn.WriteMessage(websocket.CloseMessage, cm)
 	s.conn.Close()
-	s.emit("disconnect", nil)
+	s.PostDisconnect()
 }
 
 func (s *Socket) On(event string, listener func(data any)) {

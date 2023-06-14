@@ -3,7 +3,6 @@ package wss
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"reflect"
 	"sync"
@@ -104,14 +103,14 @@ func (wss *WsServer) listenMessages(socket *Socket) {
 	for {
 		messageType, msg, err := socket.conn.ReadMessage()
 		if err != nil {
-			if err == io.EOF {
-				socket.emit("disconnect", nil)
-				return
-			}
 			fmt.Println("read message error:", err)
-			continue
+			socket.emit("disconnect", nil)
+			socket.PostDisconnect()
+			return
 		}
 		if messageType != websocket.TextMessage {
+			data := []byte("only text messages are allowed")
+			socket.conn.WriteMessage(websocket.TextMessage, data)
 			continue
 		}
 		var message Message
@@ -123,36 +122,16 @@ func (wss *WsServer) listenMessages(socket *Socket) {
 	}
 }
 
-func (wss *WsServer) ListenAndServe(addr, path string) error {
-	if wss.socketHandler == nil {
-		return fmt.Errorf("connection handler is not specified")
-	}
-	mux := &http.ServeMux{}
-	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		payload, ok := r.Context().Value(controllers.TokenPayloadKey).(controllers.TokenPayload)
-		if !ok {
-			controllers.WriteError(w, controllers.ErrNoUserPayloadInContext)
-			return
-		}
-
-		conn, _ := wss.upgrader.Upgrade(w, r, nil)
-		socket := NewSocket(payload.UserId, conn, wss)
-		socket.On("disconnect", func(data any) {
-			wss.Conns.Remove(socket.UserId)
-			chats := wss.Rooms.GetAllForUser(socket.UserId)
-			for _, chat := range chats {
-				chat.Remove(socket.UserId)
-			}
-		})
-		wss.Conns.Add(socket.UserId, conn)
-		wss.socketHandler(socket)
-		go wss.listenMessages(socket)
-	})
-
-	httpServer := &http.Server{
-		Addr:    addr,
-		Handler: controllers.GetAuthMiddleware(controllers.GetTokenFromQuery)(mux),
+func (wss *WsServer) HttpHandler(w http.ResponseWriter, r *http.Request) {
+	payload, ok := r.Context().Value(controllers.TokenPayloadKey).(controllers.TokenPayload)
+	if !ok {
+		controllers.WriteError(w, controllers.ErrNoUserPayloadInContext)
+		return
 	}
 
-	return httpServer.ListenAndServe()
+	conn, _ := wss.upgrader.Upgrade(w, r, nil)
+	socket := NewSocket(payload.UserId, conn, wss)
+	wss.Conns.Add(socket.UserId, conn)
+	wss.socketHandler(socket)
+	go wss.listenMessages(socket)
 }

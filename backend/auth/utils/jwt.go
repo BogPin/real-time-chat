@@ -43,7 +43,7 @@ func (s *JWTStrategy) CreateJWT(id int) (string, HttpError) {
 
 func (s *JWTStrategy) DecodeJWT(tokenStr string) (*payload, HttpError) {
 	var claims userClaims
-	_, err := jwt.ParseWithClaims(tokenStr, &claims, func(t *jwt.Token) (interface{}, error) {
+	_, err := jwt.ParseWithClaims(tokenStr, &claims, func(t *jwt.Token) (any, error) {
 		_, ok := t.Method.(*jwt.SigningMethodHMAC)
 		if !ok {
 			return nil, errors.New("wrong signing method")
