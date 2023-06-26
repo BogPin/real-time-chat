@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Chart.Name }}-deployment
+  annotations:
+    proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
 spec:
   replicas: 1
   selector:
@@ -13,8 +15,8 @@ spec:
        app: {{ .Chart.Name }}
     spec:
       containers:
-        - image: {{ .Values.imageURL }}
-          name: {{ .Chart.Name }}
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.imageURL }}
           ports:
             - containerPort: 8080
           env:
@@ -62,8 +64,8 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: "500Mi"
-              cpu:    "250m"
+              memory: "250Mi"
+              cpu:    "100m"
       volumes:
         - name: sa-volume
           secret:
