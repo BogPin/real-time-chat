@@ -13,6 +13,7 @@ import (
 
 func RegisterChatsRoutes(router *mux.Router, service services.Chat) {
 	router.Path("").HandlerFunc(createChat(service)).Methods("POST")
+	router.Path("").HandlerFunc(getChats(service)).Methods("GET")
 	router.Path("/{id}").HandlerFunc(getChat(service)).Methods("GET")
 	router.Path("/{id}").HandlerFunc(updateChat(service)).Methods("PATCH")
 	router.Path("/{id}").HandlerFunc(deleteChat(service)).Methods("DELETE")
@@ -40,6 +41,24 @@ func createChat(service services.Chat) http.HandlerFunc {
 		}
 
 		writeResponce(w, chat)
+	}
+}
+
+func getChats(service services.Chat) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
+		if !ok {
+			WriteError(w, ErrNoUserPayloadInContext)
+			return
+		}
+
+		chats, httpErr := service.GetUserChats(payload.UserId)
+		if httpErr != nil {
+			WriteError(w, httpErr)
+			return
+		}
+
+		writeResponce(w, chats)
 	}
 }
 

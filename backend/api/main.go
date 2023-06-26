@@ -117,6 +117,7 @@ func main() {
 	})
 
 	port := ":" + getEnvVar("PORT")
+	log.Printf("listening on %s", port)
 	err = http.ListenAndServe(port, router)
 	if err != nil {
 		log.Fatal(err)
