@@ -1,0 +1,5 @@
+paths:
+  - path: /api
+    serviceName: api-service
+  - path: /auth
+    serviceName: auth-service

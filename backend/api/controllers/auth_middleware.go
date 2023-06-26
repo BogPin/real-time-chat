@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -36,7 +37,7 @@ func GetTokenFromQuery(r *http.Request) (string, error) {
 	return token, nil
 }
 
-func GetAuthMiddleware(getToken func(r *http.Request) (string, error)) func(next http.Handler) http.Handler {
+func GetAuthMiddleware(authService string, getToken func(r *http.Request) (string, error)) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token, err := getToken(r)
@@ -48,7 +49,8 @@ func GetAuthMiddleware(getToken func(r *http.Request) (string, error)) func(next
 			body := tokenBody{token}
 			buf := new(bytes.Buffer)
 			json.NewEncoder(buf).Encode(body)
-			resp, err := http.Post("http://localhost:8081/auth/validate", "application/json", buf)
+			url := fmt.Sprintf("http://%s/auth/validate", authService)
+			resp, err := http.Post(url, "application/json", buf)
 			if err != nil {
 				WriteError(w, utils.NewHttpError(err, http.StatusUnauthorized))
 				return

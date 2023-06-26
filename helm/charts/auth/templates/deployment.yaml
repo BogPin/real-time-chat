@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+     labels:
+       app: {{ .Chart.Name }}
+    spec:
+      containers:
+        - image: {{ .Values.imageURL }}
+          name: {{ .Chart.Name }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: database
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: dbport
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: dbhost
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-secret
+                  key: jwt
+            - name: PORT
+              value: "8080"
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.1.0
+          args:
+            - "--port=5432"
+            - "tough-bearing-390810:europe-central2:real-chat"
+            - "--credentials-file=/secrets/service_account.json"
+          volumeMounts:
+            - name: sa-volume
+              mountPath: /secrets/
+              readOnly: true
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu:    "250m"
+      volumes:
+        - name: sa-volume
+          secret:
+            secretName: sa-secret

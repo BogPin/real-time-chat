@@ -17,6 +17,7 @@ bin
 
 # Go workspace file
 go.work
+go.work.sum
 
 # IDE generated directories
 .idea
@@ -24,3 +25,4 @@ go.work
 
 # configuration
 *.env
+.DS_Store

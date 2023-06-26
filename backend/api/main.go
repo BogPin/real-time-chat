@@ -35,10 +35,12 @@ func main() {
 	}
 	defer db.Close()
 
+	authService := getEnvVar("AUTH_SERVICE")
+
 	router := mux.NewRouter()
 
 	apiRouter := router.PathPrefix("/api").Subrouter()
-	apiRouter.Use(controllers.GetAuthMiddleware(controllers.GetTokenFromHeader))
+	apiRouter.Use(controllers.GetAuthMiddleware(authService, controllers.GetTokenFromHeader))
 
 	userStorer := user.UserStorer{DB: db}
 	userService := services.UserService{UserStorer: &userStorer}
@@ -62,7 +64,7 @@ func main() {
 
 	wsServer := wss.NewWsServer()
 	wsRouter := router.PathPrefix("/ws").Subrouter()
-	authMiddleware := controllers.GetAuthMiddleware(controllers.GetTokenFromQuery)
+	authMiddleware := controllers.GetAuthMiddleware(authService, controllers.GetTokenFromQuery)
 	wsRouter.Use(authMiddleware)
 	wsRouter.Path("").HandlerFunc(wsServer.HttpHandler).Methods("GET")
 
