@@ -6,25 +6,30 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/BogPin/real-time-chat/backend/api/models/participant"
+	"github.com/BogPin/real-time-chat/backend/api/models"
 	"github.com/BogPin/real-time-chat/backend/api/utils"
 	"golang.org/x/exp/slices"
 )
 
-type Participant interface {
-	Create(userId int, participant participant.Participant) (*participant.Participant, utils.HttpError)
-	GetChatUsers(userId, chatId int) ([]participant.ChatUser, utils.HttpError)
-	Update(userId int, participant participant.Participant) (*participant.Participant, utils.HttpError)
-	Delete(userId int, participant participant.Participant) (*participant.Participant, utils.HttpError)
+type IParticipantService interface {
+	Create(userId int, participant models.Participant) (*models.Participant, utils.HttpError)
+	GetChatUsers(userId, chatId int) ([]models.ChatUser, utils.HttpError)
+	Update(userId int, participant models.Participant) (*models.Participant, utils.HttpError)
+	Delete(userId int, participant models.Participant) (*models.Participant, utils.HttpError)
+	UserInChat(userId, chatId int) (bool, error)
 }
 
 type ParticipantService struct {
-	ParticipantStorer *participant.ParticipantStorer
+	ParticipantStorer models.IParticipantStorer
 }
 
-func (ps ParticipantService) Create(userId int, participant participant.Participant) (*participant.Participant, utils.HttpError) {
+func NewParticipantService(participantStorer models.IParticipantStorer) ParticipantService {
+	return ParticipantService{ParticipantStorer: participantStorer}
+}
+
+func (ps ParticipantService) Create(userId int, participant models.Participant) (*models.Participant, utils.HttpError) {
 	chatId := participant.ChatId
-	userInChat, err := userInChat(ps.ParticipantStorer.DB, userId, chatId)
+	userInChat, err := ps.UserInChat(userId, chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
@@ -42,13 +47,13 @@ func (ps ParticipantService) Create(userId int, participant participant.Particip
 	return &participant, nil
 }
 
-func (ps ParticipantService) GetChatUsers(userId, chatId int) ([]participant.ChatUser, utils.HttpError) {
+func (ps ParticipantService) GetChatUsers(userId, chatId int) ([]models.ChatUser, utils.HttpError) {
 	chatUsers, err := ps.ParticipantStorer.GetChatUsers(chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
 
-	idx := slices.IndexFunc(chatUsers, func(chatUser participant.ChatUser) bool { return chatUser.UserId == userId })
+	idx := slices.IndexFunc(chatUsers, func(chatUser models.ChatUser) bool { return chatUser.UserId == userId })
 	if idx == -1 {
 		err := fmt.Errorf("user %d doesn't participate in chat %d", userId, chatId)
 		return nil, utils.NewHttpError(err, http.StatusForbidden)
@@ -57,9 +62,9 @@ func (ps ParticipantService) GetChatUsers(userId, chatId int) ([]participant.Cha
 	return chatUsers, nil
 }
 
-func (ps ParticipantService) Update(userId int, participant participant.Participant) (*participant.Participant, utils.HttpError) {
+func (ps ParticipantService) Update(userId int, participant models.Participant) (*models.Participant, utils.HttpError) {
 	chatId := participant.ChatId
-	userInChat, err := userInChat(ps.ParticipantStorer.DB, userId, chatId)
+	userInChat, err := ps.UserInChat(userId, chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
@@ -87,9 +92,9 @@ func (ps ParticipantService) Update(userId int, participant participant.Particip
 	return newParticipant, nil
 }
 
-func (ps ParticipantService) Delete(userId int, participant participant.Participant) (*participant.Participant, utils.HttpError) {
+func (ps ParticipantService) Delete(userId int, participant models.Participant) (*models.Participant, utils.HttpError) {
 	chatId := participant.ChatId
-	userInChat, err := userInChat(ps.ParticipantStorer.DB, userId, chatId)
+	userInChat, err := ps.UserInChat(userId, chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
@@ -117,9 +122,8 @@ func (ps ParticipantService) Delete(userId int, participant participant.Particip
 	return dltParticipant, nil
 }
 
-func userInChat(db *sql.DB, userId, chatId int) (bool, error) {
-	storer := participant.ParticipantStorer{DB: db}
-	_, err := storer.GetOne(userId, chatId)
+func (ps ParticipantService) UserInChat(userId, chatId int) (bool, error) {
+	_, err := ps.ParticipantStorer.GetOne(userId, chatId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil

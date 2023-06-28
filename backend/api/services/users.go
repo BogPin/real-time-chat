@@ -6,21 +6,25 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/BogPin/real-time-chat/backend/api/models/user"
+	"github.com/BogPin/real-time-chat/backend/api/models"
 	"github.com/BogPin/real-time-chat/backend/api/utils"
 )
 
-type User interface {
-	GetOne(userId int) (*user.User, utils.HttpError)
-	Update(userId int, user user.User) (*user.User, utils.HttpError)
-	Delete(userId int, user user.User) (*user.User, utils.HttpError)
+type IUserService interface {
+	GetOne(userId int) (*models.User, utils.HttpError)
+	Update(userId int, user models.User) (*models.User, utils.HttpError)
+	Delete(userId int, user models.User) (*models.User, utils.HttpError)
 }
 
 type UserService struct {
-	UserStorer *user.UserStorer
+	UserStorer models.IUserStorer
 }
 
-func (us UserService) GetOne(userId int) (*user.User, utils.HttpError) {
+func NewUserService(userStorer models.IUserStorer) UserService {
+	return UserService{UserStorer: userStorer}
+}
+
+func (us UserService) GetOne(userId int) (*models.User, utils.HttpError) {
 	user, err := us.UserStorer.GetOne(userId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -32,7 +36,7 @@ func (us UserService) GetOne(userId int) (*user.User, utils.HttpError) {
 	return user, nil
 }
 
-func (us UserService) Update(userId int, user user.User) (*user.User, utils.HttpError) {
+func (us UserService) Update(userId int, user models.User) (*models.User, utils.HttpError) {
 	//TODO: update only non nullish fields
 	if userId != user.Id {
 		err := errors.New("cannot update other users")
@@ -47,7 +51,7 @@ func (us UserService) Update(userId int, user user.User) (*user.User, utils.Http
 	return newUser, nil
 }
 
-func (us UserService) Delete(userId int, user user.User) (*user.User, utils.HttpError) {
+func (us UserService) Delete(userId int, user models.User) (*models.User, utils.HttpError) {
 	if userId != user.Id {
 		err := errors.New("cannot delete other users")
 		return nil, utils.NewHttpError(err, http.StatusForbidden)

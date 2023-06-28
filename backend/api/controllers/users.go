@@ -4,19 +4,19 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/BogPin/real-time-chat/backend/api/models/user"
+	"github.com/BogPin/real-time-chat/backend/api/models"
 	"github.com/BogPin/real-time-chat/backend/api/services"
 	"github.com/BogPin/real-time-chat/backend/api/utils"
 	"github.com/gorilla/mux"
 )
 
-func RegisterUsersRoutes(router *mux.Router, service services.User) {
+func RegisterUsersRoutes(router *mux.Router, service services.IUserService) {
 	router.Path("").HandlerFunc(getUser(service)).Methods("GET")
 	router.Path("").HandlerFunc(updateUser(service)).Methods("PATCH")
 	router.Path("").HandlerFunc(deleteUser(service)).Methods("DELETE")
 }
 
-func getUser(service services.User) http.HandlerFunc {
+func getUser(service services.IUserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		payload, ok := r.Context().Value(TokenPayloadKey).(TokenPayload)
 		if !ok {
@@ -34,9 +34,9 @@ func getUser(service services.User) http.HandlerFunc {
 	}
 }
 
-func updateUser(service services.User) http.HandlerFunc {
+func updateUser(service services.IUserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user user.User
+		var user models.User
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
 			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))
@@ -59,9 +59,9 @@ func updateUser(service services.User) http.HandlerFunc {
 	}
 }
 
-func deleteUser(service services.User) http.HandlerFunc {
+func deleteUser(service services.IUserService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user user.User
+		var user models.User
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
 			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))

@@ -9,12 +9,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func RegisterMessagesRoutes(router *mux.Router, service services.Message) {
+func RegisterMessagesRoutes(router *mux.Router, service services.IMessageService) {
 	router.Path("/{id}").HandlerFunc(getMessage(service)).Methods("GET")
 	router.Path("").HandlerFunc(getMessages(service)).Methods("GET")
 }
 
-func getMessage(service services.Message) http.HandlerFunc {
+func getMessage(service services.IMessageService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		messageId, err := strconv.Atoi(mux.Vars(r)["id"])
 		if err != nil {
@@ -38,7 +38,7 @@ func getMessage(service services.Message) http.HandlerFunc {
 	}
 }
 
-func getMessages(service services.Message) http.HandlerFunc {
+func getMessages(service services.IMessageService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		chatId, err := strconv.Atoi(r.URL.Query().Get("chatId"))
 		if err != nil {

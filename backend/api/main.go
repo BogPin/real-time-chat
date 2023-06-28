@@ -8,10 +8,7 @@ import (
 	"os"
 
 	"github.com/BogPin/real-time-chat/backend/api/controllers"
-	"github.com/BogPin/real-time-chat/backend/api/models/chat"
-	"github.com/BogPin/real-time-chat/backend/api/models/message"
-	"github.com/BogPin/real-time-chat/backend/api/models/participant"
-	"github.com/BogPin/real-time-chat/backend/api/models/user"
+	"github.com/BogPin/real-time-chat/backend/api/models"
 	"github.com/BogPin/real-time-chat/backend/api/services"
 	"github.com/BogPin/real-time-chat/backend/api/wss"
 	"github.com/gorilla/mux"
@@ -42,25 +39,25 @@ func main() {
 	apiRouter := router.PathPrefix("/api").Subrouter()
 	apiRouter.Use(controllers.GetAuthMiddleware(authService, controllers.GetTokenFromHeader))
 
-	userStorer := user.UserStorer{DB: db}
-	userService := services.UserService{UserStorer: &userStorer}
+	userStorer := models.NewUserStorer(db)
+	userService := services.NewUserService(userStorer)
 	usersRouter := apiRouter.PathPrefix("/users").Subrouter()
 	controllers.RegisterUsersRoutes(usersRouter, userService)
 
-	chatStorer := chat.ChatStorer{DB: db}
-	chatService := services.ChatService{ChatStorer: &chatStorer}
-	chatsRouter := apiRouter.PathPrefix("/chats").Subrouter()
-	controllers.RegisterChatsRoutes(chatsRouter, chatService)
+	participantStorer := models.NewParticipantStorer(db)
+	participantService := services.NewParticipantService(participantStorer)
+	participantRouter := apiRouter.PathPrefix("/participants").Subrouter()
+	controllers.RegisterParticipantRoutes(participantRouter, participantService)
 
-	messageStorer := message.MessageStorer{DB: db}
-	messageService := services.MessageService{MessageStorer: &messageStorer}
+	messageStorer := models.NewMessageStorer(db)
+	messageService := services.NewMessageService(messageStorer, participantService)
 	messagesRouter := apiRouter.PathPrefix("/messages").Subrouter()
 	controllers.RegisterMessagesRoutes(messagesRouter, messageService)
 
-	participantStorer := participant.ParticipantStorer{DB: db}
-	participantService := services.ParticipantService{ParticipantStorer: &participantStorer}
-	participantRouter := apiRouter.PathPrefix("/participants").Subrouter()
-	controllers.RegisterParticipantRoutes(participantRouter, participantService)
+	chatStorer := models.NewChatStorer(db)
+	chatService := services.NewChatService(chatStorer, participantStorer, messageStorer, participantService)
+	chatsRouter := apiRouter.PathPrefix("/chats").Subrouter()
+	controllers.RegisterChatsRoutes(chatsRouter, chatService)
 
 	wsServer := wss.NewWsServer()
 	wsRouter := router.PathPrefix("/ws").Subrouter()
@@ -78,11 +75,11 @@ func main() {
 		}
 
 		socket.On("message", func(data any) {
-			msg := message.MessageFromRequest{}
+			msg := models.MessageFromRequest{}
 			if err := mapstructure.Decode(data, &msg); err != nil {
 				socket.Message(wss.NewErrorInvalidDataFormatMessage(msg))
 			}
-			i := slices.IndexFunc(chats, func(c chat.Chat) bool { return msg.ChatId == c.Id })
+			i := slices.IndexFunc(chats, func(c models.Chat) bool { return msg.ChatId == c.Id })
 			if i == -1 {
 				socket.Message(wss.NewErrorMessage("not allowed to write to that chat"))
 				return
@@ -104,7 +101,7 @@ func main() {
 		socket.On("disconnect", func(data any) {
 			chatRooms := wsServer.Rooms.GetAllForUser(socket.UserId)
 			for _, chatRoom := range chatRooms {
-				msg := message.MessageDTO{
+				msg := models.MessageDTO{
 					SenderId: socket.UserId,
 					ChatId:   chatRoom.Id,
 					Type:     "text",

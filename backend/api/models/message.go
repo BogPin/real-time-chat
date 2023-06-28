@@ -1,12 +1,6 @@
-package message
+package models
 
 import "database/sql"
-
-const PAGE_SIZE = 50
-
-type MessageStorer struct {
-	DB *sql.DB
-}
 
 type Message struct {
 	Id        int    `json:"id"`
@@ -30,7 +24,26 @@ type MessageFromRequest struct {
 	Content string `json:"content"`
 }
 
-func (cs *MessageStorer) Create(tdo MessageDTO) (*Message, error) {
+type IMessageStorer interface {
+	Create(tdo MessageDTO) (*Message, error)
+	GetOne(id int) (*Message, error)
+	GetChatMessages(chatId, page int) ([]Message, error)
+	Update(message Message) (*Message, error)
+	Delete(id int) (*Message, error)
+	DeleteAll(chatId int) (sql.Result, error)
+}
+
+const PAGE_SIZE = 50
+
+type MessageStorer struct {
+	DB *sql.DB
+}
+
+func NewMessageStorer(db *sql.DB) MessageStorer {
+	return MessageStorer{DB: db}
+}
+
+func (cs MessageStorer) Create(tdo MessageDTO) (*Message, error) {
 	var message Message
 	query := "INSERT INTO messages (sender_id, chat_id, type, content) VALUES ($1, $2, $3, $4) RETURNING *"
 	row := cs.DB.QueryRow(query, tdo.SenderId, tdo.ChatId, tdo.Type, tdo.Content)
@@ -41,7 +54,7 @@ func (cs *MessageStorer) Create(tdo MessageDTO) (*Message, error) {
 	return &message, nil
 }
 
-func (cs *MessageStorer) GetOne(id int) (*Message, error) {
+func (cs MessageStorer) GetOne(id int) (*Message, error) {
 	var message Message
 	query := "SELECT * FROM messages WHERE id = $1"
 	row := cs.DB.QueryRow(query, id)
@@ -52,7 +65,7 @@ func (cs *MessageStorer) GetOne(id int) (*Message, error) {
 	return &message, nil
 }
 
-func (cs *MessageStorer) GetChatMessages(chatId, page int) ([]Message, error) {
+func (cs MessageStorer) GetChatMessages(chatId, page int) ([]Message, error) {
 	messages := make([]Message, 0)
 	query := "SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
 	rows, err := cs.DB.Query(query, chatId, PAGE_SIZE, page*PAGE_SIZE)
@@ -70,7 +83,7 @@ func (cs *MessageStorer) GetChatMessages(chatId, page int) ([]Message, error) {
 	return messages, nil
 }
 
-func (cs *MessageStorer) Update(message Message) (*Message, error) {
+func (cs MessageStorer) Update(message Message) (*Message, error) {
 	var updMessage Message
 	query := "UPDATE messages SET content=$1 WHERE id=$2 RETURNING *"
 	row := cs.DB.QueryRow(query, message.Content, message.Id)
@@ -81,7 +94,7 @@ func (cs *MessageStorer) Update(message Message) (*Message, error) {
 	return &updMessage, nil
 }
 
-func (cs *MessageStorer) Delete(id int) (*Message, error) {
+func (cs MessageStorer) Delete(id int) (*Message, error) {
 	var message Message
 	query := "DELETE FROM messages WHERE id = $1"
 	row := cs.DB.QueryRow(query, id)
@@ -92,7 +105,7 @@ func (cs *MessageStorer) Delete(id int) (*Message, error) {
 	return &message, nil
 }
 
-func (cs *MessageStorer) DeleteAll(chatId int) (sql.Result, error) {
+func (cs MessageStorer) DeleteAll(chatId int) (sql.Result, error) {
 	query := "DELETE FROM messages WHERE chat_id = $1"
 	return cs.DB.Exec(query, chatId)
 }

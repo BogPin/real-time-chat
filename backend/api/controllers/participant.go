@@ -5,21 +5,21 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/BogPin/real-time-chat/backend/api/models/participant"
+	"github.com/BogPin/real-time-chat/backend/api/models"
 	"github.com/BogPin/real-time-chat/backend/api/services"
 	"github.com/BogPin/real-time-chat/backend/api/utils"
 	"github.com/gorilla/mux"
 )
 
-func RegisterParticipantRoutes(router *mux.Router, service services.Participant) {
+func RegisterParticipantRoutes(router *mux.Router, service services.IParticipantService) {
 	router.Path("").HandlerFunc(createParticipant(service)).Methods("POST")
 	router.Path("/{id}").HandlerFunc(updateParticipant(service)).Methods("PATCH")
 	router.Path("").HandlerFunc(deleteParticipant(service)).Methods("DELETE")
 }
 
-func createParticipant(service services.Participant) http.HandlerFunc {
+func createParticipant(service services.IParticipantService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		part := participant.Participant{
+		part := models.Participant{
 			Role: "member",
 		}
 		err := json.NewDecoder(r.Body).Decode(&part)
@@ -44,9 +44,9 @@ func createParticipant(service services.Participant) http.HandlerFunc {
 	}
 }
 
-func updateParticipant(service services.Participant) http.HandlerFunc {
+func updateParticipant(service services.IParticipantService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var part participant.Participant
+		var part models.Participant
 		err := json.NewDecoder(r.Body).Decode(&part)
 		if err != nil {
 			WriteError(w, utils.NewHttpError(err, http.StatusBadRequest))
@@ -69,7 +69,7 @@ func updateParticipant(service services.Participant) http.HandlerFunc {
 	}
 }
 
-func deleteParticipant(service services.Participant) http.HandlerFunc {
+func deleteParticipant(service services.IParticipantService) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userId, err := strconv.Atoi(r.URL.Query().Get("userId"))
 		if err != nil {
@@ -83,7 +83,7 @@ func deleteParticipant(service services.Participant) http.HandlerFunc {
 			return
 		}
 
-		part := participant.Participant{
+		part := models.Participant{
 			UserId: userId,
 			ChatId: chatId,
 		}

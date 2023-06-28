@@ -1,4 +1,4 @@
-package user
+package models
 
 import (
 	"database/sql"
@@ -8,8 +8,18 @@ import (
 
 //TODO: use "null" package to make some fields sql nullable(e.g. description)
 
+type IUserStorer interface {
+	GetOne(id int) (*User, error)
+	Update(user User) (*User, error)
+	Delete(id int) (*User, error)
+}
+
 type UserStorer struct {
 	DB *sql.DB
+}
+
+func NewUserStorer(db *sql.DB) UserStorer {
+	return UserStorer{DB: db}
 }
 
 type User struct {
@@ -27,7 +37,7 @@ type UserDTO struct {
 	Description string `json:"description"`
 }
 
-func (us *UserStorer) GetOne(id int) (*User, error) {
+func (us UserStorer) GetOne(id int) (*User, error) {
 	var user User
 	query := "SELECT * FROM users where id = $1"
 	row := us.DB.QueryRow(query, id)
@@ -38,7 +48,7 @@ func (us *UserStorer) GetOne(id int) (*User, error) {
 	return &user, nil
 }
 
-func (us *UserStorer) Update(user User) (*User, error) {
+func (us UserStorer) Update(user User) (*User, error) {
 	var updUser User
 	query := "UPDATE users SET tag=$1, name=$2, password=$3, description=$4 WHERE id=$5 RETURNING *"
 	row := us.DB.QueryRow(query, user.Tag, user.Name, user.Password, user.Description, user.Id)
@@ -49,7 +59,7 @@ func (us *UserStorer) Update(user User) (*User, error) {
 	return &updUser, nil
 }
 
-func (us *UserStorer) Delete(id int) (*User, error) {
+func (us UserStorer) Delete(id int) (*User, error) {
 	var dltUser User
 	query := "DELETE FROM users WHERE id=$1 RETURNING *"
 	row := us.DB.QueryRow(query, id)

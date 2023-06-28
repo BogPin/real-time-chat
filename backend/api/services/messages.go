@@ -6,25 +6,33 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/BogPin/real-time-chat/backend/api/models/message"
+	"github.com/BogPin/real-time-chat/backend/api/models"
 	"github.com/BogPin/real-time-chat/backend/api/utils"
 )
 
-type Message interface {
-	Create(userId int, MessageTDO message.MessageFromRequest) (*message.Message, utils.HttpError)
-	GetOne(userId, messageId int) (*message.Message, utils.HttpError)
-	GetChatMessages(userId, chatId, page int) ([]message.Message, utils.HttpError)
-	Update(userId int, message message.Message) (*message.Message, utils.HttpError)
-	Delete(userId int, message message.Message) (*message.Message, utils.HttpError)
+type IMessageService interface {
+	Create(userId int, MessageTDO models.MessageFromRequest) (*models.Message, utils.HttpError)
+	GetOne(userId, messageId int) (*models.Message, utils.HttpError)
+	GetChatMessages(userId, chatId, page int) ([]models.Message, utils.HttpError)
+	Update(userId int, message models.Message) (*models.Message, utils.HttpError)
+	Delete(userId int, message models.Message) (*models.Message, utils.HttpError)
 }
 
 type MessageService struct {
-	MessageStorer *message.MessageStorer
+	MessageStorer      models.IMessageStorer
+	ParticipantService IParticipantService
 }
 
-func (ms MessageService) Create(userId int, fromRequest message.MessageFromRequest) (*message.Message, utils.HttpError) {
+func NewMessageService(messageStorer models.IMessageStorer, participantService IParticipantService) MessageService {
+	return MessageService{
+		MessageStorer:      messageStorer,
+		ParticipantService: participantService,
+	}
+}
+
+func (ms MessageService) Create(userId int, fromRequest models.MessageFromRequest) (*models.Message, utils.HttpError) {
 	chatId := fromRequest.ChatId
-	userInChat, err := userInChat(ms.MessageStorer.DB, userId, chatId)
+	userInChat, err := ms.ParticipantService.UserInChat(userId, chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
@@ -34,7 +42,7 @@ func (ms MessageService) Create(userId int, fromRequest message.MessageFromReque
 		return nil, utils.NewHttpError(err, http.StatusForbidden)
 	}
 
-	dto := message.MessageDTO{
+	dto := models.MessageDTO{
 		SenderId: userId,
 		ChatId:   fromRequest.ChatId,
 		Type:     fromRequest.Type,
@@ -49,7 +57,7 @@ func (ms MessageService) Create(userId int, fromRequest message.MessageFromReque
 	return msg, nil
 }
 
-func (ms MessageService) GetOne(userId, messageId int) (*message.Message, utils.HttpError) {
+func (ms MessageService) GetOne(userId, messageId int) (*models.Message, utils.HttpError) {
 	msg, err := ms.MessageStorer.GetOne(messageId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -59,7 +67,7 @@ func (ms MessageService) GetOne(userId, messageId int) (*message.Message, utils.
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
 
-	userInChat, err := userInChat(ms.MessageStorer.DB, userId, msg.ChatId)
+	userInChat, err := ms.ParticipantService.UserInChat(userId, msg.ChatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
@@ -72,8 +80,8 @@ func (ms MessageService) GetOne(userId, messageId int) (*message.Message, utils.
 	return msg, nil
 }
 
-func (ms MessageService) GetChatMessages(userId, chatId, page int) ([]message.Message, utils.HttpError) {
-	userInChat, err := userInChat(ms.MessageStorer.DB, userId, chatId)
+func (ms MessageService) GetChatMessages(userId, chatId, page int) ([]models.Message, utils.HttpError) {
+	userInChat, err := ms.ParticipantService.UserInChat(userId, chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
@@ -91,7 +99,7 @@ func (ms MessageService) GetChatMessages(userId, chatId, page int) ([]message.Me
 	return messages, nil
 }
 
-func (ms MessageService) Update(userId int, message message.Message) (*message.Message, utils.HttpError) {
+func (ms MessageService) Update(userId int, message models.Message) (*models.Message, utils.HttpError) {
 	originalMsg, httpErr := ms.GetOne(userId, message.Id)
 	if httpErr != nil {
 		return nil, httpErr
@@ -110,7 +118,7 @@ func (ms MessageService) Update(userId int, message message.Message) (*message.M
 	return msg, nil
 }
 
-func (ms MessageService) Delete(userId int, message message.Message) (*message.Message, utils.HttpError) {
+func (ms MessageService) Delete(userId int, message models.Message) (*models.Message, utils.HttpError) {
 	originalMsg, httpErr := ms.GetOne(userId, message.Id)
 	if httpErr != nil {
 		return nil, httpErr

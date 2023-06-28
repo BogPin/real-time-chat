@@ -6,53 +6,66 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/BogPin/real-time-chat/backend/api/models/chat"
-	"github.com/BogPin/real-time-chat/backend/api/models/message"
-	"github.com/BogPin/real-time-chat/backend/api/models/participant"
+	"github.com/BogPin/real-time-chat/backend/api/models"
 	"github.com/BogPin/real-time-chat/backend/api/utils"
 )
 
-type Chat interface {
-	Create(userId int, chat chat.ChatFromRequest) (*chat.Chat, utils.HttpError)
-	GetOne(userId, chatId int) (*chat.Chat, utils.HttpError)
-	GetUserChats(userId int) ([]chat.Chat, utils.HttpError)
-	Update(userId int, chat chat.Chat) (*chat.Chat, utils.HttpError)
-	Delete(userId, chatId int) (*chat.Chat, utils.HttpError)
+type IChatService interface {
+	Create(userId int, chat models.ChatFromRequest) (*models.Chat, utils.HttpError)
+	GetOne(userId, chatId int) (*models.Chat, utils.HttpError)
+	GetUserChats(userId int) ([]models.Chat, utils.HttpError)
+	Update(userId int, chat models.Chat) (*models.Chat, utils.HttpError)
+	Delete(userId, chatId int) (*models.Chat, utils.HttpError)
 }
 
 type ChatService struct {
-	ChatStorer        *chat.ChatStorer
-	ParticipantStorer *participant.ParticipantStorer
-	MessageStorer     *message.MessageStorer
+	ChatStorer         models.IChatStorer
+	ParticipantStorer  models.IParticipantStorer
+	MessageStorer      models.IMessageStorer
+	ParticipantService IParticipantService
 }
 
-func (cs ChatService) Create(userId int, chatWithTitle chat.ChatFromRequest) (*chat.Chat, utils.HttpError) {
-	dto := chat.ChatDTO{Title: chatWithTitle.Title, CreatorId: userId}
+func NewChatService(chatStorer models.IChatStorer, participantStorer models.IParticipantStorer, messageStorer models.IMessageStorer, participantService ParticipantService) ChatService {
+	return ChatService{
+		ChatStorer:         chatStorer,
+		ParticipantStorer:  participantStorer,
+		MessageStorer:      messageStorer,
+		ParticipantService: participantService,
+	}
+}
 
-	tx, err := cs.ChatStorer.DB.Begin()
+func (cs ChatService) Create(userId int, chatWithTitle models.ChatFromRequest) (*models.Chat, utils.HttpError) {
+	dto := models.ChatDTO{Title: chatWithTitle.Title, CreatorId: userId}
+
+	tx, err := cs.ChatStorer.Begin()
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
 
 	chat, err := cs.ChatStorer.CreateInTx(tx, dto)
 	if err != nil {
-		tx.Rollback()
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
 
-	admin := participant.Participant{UserId: userId, ChatId: chat.Id, Role: "admin"}
+	admin := models.Participant{UserId: userId, ChatId: chat.Id, Role: "admin"}
 	_, err = cs.ParticipantStorer.CreateInTx(tx, admin)
 	if err != nil {
-		tx.Rollback()
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
 
-	tx.Commit()
 	return chat, nil
 }
 
-func (cs ChatService) GetOne(userId, chatId int) (*chat.Chat, utils.HttpError) {
-	userInChat, err := userInChat(cs.ChatStorer.DB, userId, chatId)
+func (cs ChatService) GetOne(userId, chatId int) (*models.Chat, utils.HttpError) {
+	userInChat, err := cs.ParticipantService.UserInChat(userId, chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
@@ -73,7 +86,7 @@ func (cs ChatService) GetOne(userId, chatId int) (*chat.Chat, utils.HttpError) {
 	return chat, nil
 }
 
-func (cs ChatService) GetUserChats(userId int) ([]chat.Chat, utils.HttpError) {
+func (cs ChatService) GetUserChats(userId int) ([]models.Chat, utils.HttpError) {
 	chats, err := cs.ChatStorer.GetUserChats(userId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
@@ -81,8 +94,8 @@ func (cs ChatService) GetUserChats(userId int) ([]chat.Chat, utils.HttpError) {
 	return chats, nil
 }
 
-func (cs ChatService) Update(userId int, chat chat.Chat) (*chat.Chat, utils.HttpError) {
-	userInChat, err := userInChat(cs.ChatStorer.DB, userId, chat.Id)
+func (cs ChatService) Update(userId int, chat models.Chat) (*models.Chat, utils.HttpError) {
+	userInChat, err := cs.ParticipantService.UserInChat(userId, chat.Id)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
@@ -109,8 +122,8 @@ func (cs ChatService) Update(userId int, chat chat.Chat) (*chat.Chat, utils.Http
 	return updChat, nil
 }
 
-func (cs ChatService) Delete(userId, chatId int) (*chat.Chat, utils.HttpError) {
-	userInChat, err := userInChat(cs.ChatStorer.DB, userId, chatId)
+func (cs ChatService) Delete(userId, chatId int) (*models.Chat, utils.HttpError) {
+	userInChat, err := cs.ParticipantService.UserInChat(userId, chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
 	}
