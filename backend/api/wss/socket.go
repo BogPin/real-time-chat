@@ -1,6 +1,8 @@
 package wss
 
 import (
+	"log"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -30,7 +32,10 @@ func (s *Socket) PostDisconnect() {
 
 func (s *Socket) Disconnect(code int, reason string) {
 	cm := websocket.FormatCloseMessage(code, reason)
-	s.conn.WriteMessage(websocket.CloseMessage, cm)
+	err := s.conn.WriteMessage(websocket.CloseMessage, cm)
+	if err != nil {
+		log.Println(err)
+	}
 	s.conn.Close()
 	s.PostDisconnect()
 }

@@ -3,6 +3,7 @@ package wss
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"reflect"
 	"sync"
@@ -110,12 +111,18 @@ func (wss *WsServer) listenMessages(socket *Socket) {
 		}
 		if messageType != websocket.TextMessage {
 			data := []byte("only text messages are allowed")
-			socket.conn.WriteMessage(websocket.TextMessage, data)
+			err := socket.conn.WriteMessage(websocket.TextMessage, data)
+			if err != nil {
+				log.Println(err)
+			}
 			continue
 		}
 		var message Message
 		if err := json.Unmarshal(msg, &message); err != nil {
-			socket.conn.WriteMessage(websocket.TextMessage, []byte(MessageFormatErr))
+			err := socket.conn.WriteMessage(websocket.TextMessage, []byte(MessageFormatErr))
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		go socket.emit(message.Event, message.Data)

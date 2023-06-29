@@ -45,7 +45,7 @@ func GetAuthMiddleware(authService string, getToken func(r *http.Request) (strin
 
 			body := authControllers.TokenBody{Token: token}
 			buf := new(bytes.Buffer)
-			json.NewEncoder(buf).Encode(body)
+			_ = json.NewEncoder(buf).Encode(body)
 			url := fmt.Sprintf("http://%s/auth/validate", authService)
 			resp, err := http.Post(url, "application/json", buf)
 			if err != nil {
@@ -56,7 +56,7 @@ func GetAuthMiddleware(authService string, getToken func(r *http.Request) (strin
 
 			statusOK := resp.StatusCode >= 200 && resp.StatusCode < 300
 			if !statusOK {
-				io.Copy(w, resp.Body)
+				_, _ = io.Copy(w, resp.Body)
 				return
 			}
 

@@ -29,7 +29,7 @@ var ErrNoUserPayloadInContext = utils.NewHttpError(
 
 func WriteError(w http.ResponseWriter, err utils.HttpError) {
 	w.WriteHeader(err.Status())
-	json.NewEncoder(w).Encode(errorResponce{err.Message()})
+	_ = json.NewEncoder(w).Encode(errorResponce{err.Message()})
 }
 
 func writeResponce(w http.ResponseWriter, resp any) {

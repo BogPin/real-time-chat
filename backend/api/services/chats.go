@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/BogPin/real-time-chat/backend/api/models"
@@ -44,9 +45,15 @@ func (cs ChatService) Create(userId int, chatWithTitle models.ChatFromRequest) (
 
 	defer func() {
 		if err != nil {
-			tx.Rollback()
+			err := tx.Rollback()
+			if err != nil {
+				log.Println(err)
+			}
 		} else {
-			tx.Commit()
+			err := tx.Commit()
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}()
 
