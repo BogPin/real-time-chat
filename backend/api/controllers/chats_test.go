@@ -251,7 +251,6 @@ func TestDeleteChat(t *testing.T) {
 }
 
 func TestDeleteChatNotAdmin(t *testing.T) {
-	// Отримання ідентифікатора створеного чату
 	chatID := 3
 	// Створення DELETE-запиту для отримання чату за його ідентифікатором
 	getChatEndpoint := fmt.Sprintf("%s/api/chats/%d", apiServer.URL, chatID)
@@ -261,7 +260,7 @@ func TestDeleteChatNotAdmin(t *testing.T) {
 	}
 	deleteReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authTokenN))
 
-	// Виконання delete-запиту для отримання чату
+	// Виконання DELETE-запиту для отримання чату
 	deleteResp, err := http.DefaultClient.Do(deleteReq)
 	if err != nil {
 		t.Fatalf("Failed to send deleteChat request: %v", err)
