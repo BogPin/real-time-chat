@@ -20,7 +20,10 @@ import (
 )
 
 func main() {
-	godotenv.Load()
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 	dbUser := utils.GetEnvVar("DB_USER")
 	dbPassword := utils.GetEnvVar("DB_PASS")
 	dbName := utils.GetEnvVar("DB_NAME")
@@ -77,25 +80,40 @@ func main() {
 		socket.On("message", func(data any) {
 			msg := models.MessageFromRequest{}
 			if err := mapstructure.Decode(data, &msg); err != nil {
-				socket.Message(wss.NewErrorInvalidDataFormatMessage(msg))
+				err = socket.Message(wss.NewErrorInvalidDataFormatMessage(msg))
+				if err != nil {
+					log.Println(err)
+				}
 			}
 			i := slices.IndexFunc(chats, func(c models.Chat) bool { return msg.ChatId == c.Id })
 			if i == -1 {
-				socket.Message(wss.NewErrorMessage("not allowed to write to that chat"))
+				err := socket.Message(wss.NewErrorMessage("not allowed to write to that chat"))
+				if err != nil {
+					log.Println(err)
+				}
 				return
 			}
 			chatRoom, err := wsServer.Rooms.Get(msg.ChatId)
 			if err != nil {
-				socket.Message(wss.NewErrorMessage(err.Error()))
+				err := socket.Message(wss.NewErrorMessage(err.Error()))
+				if err != nil {
+					log.Println(err)
+				}
 				return
 			}
 			fullMessage, httpErr := messageService.Create(socket.UserId, msg)
 			if httpErr != nil {
-				socket.Message(wss.NewErrorMessage(httpErr.Message()))
+				err := socket.Message(wss.NewErrorMessage(httpErr.Message()))
+				if err != nil {
+					log.Println(err)
+				}
 				return
 			}
 			chatRoom.Send(socket.UserId, wss.NewMessage("message", fullMessage))
-			socket.Message(wss.NewMessage("message", fullMessage))
+			err = socket.Message(wss.NewMessage("message", fullMessage))
+			if err != nil {
+				log.Println(err)
+			}
 		})
 
 		socket.On("disconnect", func(data any) {

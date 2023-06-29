@@ -18,7 +18,10 @@ import (
 )
 
 func main() {
-	godotenv.Load()
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 	dbUser := getEnvVar("DB_USER")
 	dbPassword := getEnvVar("DB_PASS")
 	dbName := getEnvVar("DB_NAME")
