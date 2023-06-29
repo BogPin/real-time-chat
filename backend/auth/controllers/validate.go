@@ -23,7 +23,7 @@ func (vte ValidateTokenEndpoint) Add(router *mux.Router) {
 }
 
 func (vte ValidateTokenEndpoint) Handle(w http.ResponseWriter, r *http.Request) {
-	var body tokenBody
+	var body TokenBody
 	jsonErr := json.NewDecoder(r.Body).Decode(&body)
 	if jsonErr != nil {
 		WriteError(w, utils.NewHttpError(jsonErr, http.StatusBadRequest))

@@ -23,5 +23,5 @@ jobs:
     - name: BuildAUTH
       run: cd backend/auth && go build -o bin/main && cd ../..
     - name: Test
-      run: go test -v backend/api
+      run: cd backend/api && go test -v && cd ../..
 

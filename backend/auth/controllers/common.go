@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type tokenBody struct {
+type TokenBody struct {
 	Token string `json:"token"`
 }
 

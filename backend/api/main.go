@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/BogPin/real-time-chat/backend/api/controllers"
 	"github.com/BogPin/real-time-chat/backend/api/models"
 	"github.com/BogPin/real-time-chat/backend/api/services"
+	"github.com/BogPin/real-time-chat/backend/api/utils"
 	"github.com/BogPin/real-time-chat/backend/api/wss"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -21,18 +21,18 @@ import (
 
 func main() {
 	godotenv.Load()
-	dbUser := getEnvVar("DB_USER")
-	dbPassword := getEnvVar("DB_PASS")
-	dbName := getEnvVar("DB_NAME")
-	dbHost := getEnvVar("DB_HOST")
-	dbPort := getEnvVar("DB_PORT")
+	dbUser := utils.GetEnvVar("DB_USER")
+	dbPassword := utils.GetEnvVar("DB_PASS")
+	dbName := utils.GetEnvVar("DB_NAME")
+	dbHost := utils.GetEnvVar("DB_HOST")
+	dbPort := utils.GetEnvVar("DB_PORT")
 	db, err := dbInit(dbUser, dbPassword, dbHost, dbPort, dbName)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	authService := getEnvVar("AUTH_SERVICE")
+	authService := utils.GetEnvVar("AUTH_SERVICE")
 
 	router := mux.NewRouter()
 
@@ -113,7 +113,7 @@ func main() {
 
 	})
 
-	port := ":" + getEnvVar("PORT")
+	port := ":" + utils.GetEnvVar("PORT")
 	log.Printf("listening on %s", port)
 	err = http.ListenAndServe(port, router)
 	if err != nil {
@@ -124,12 +124,4 @@ func main() {
 func dbInit(user, password, host, port, dbname string) (*sql.DB, error) {
 	conStr := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable", user, password, host, port, dbname)
 	return sql.Open("postgres", conStr)
-}
-
-func getEnvVar(name string) string {
-	variable, present := os.LookupEnv(name)
-	if !present {
-		log.Fatalf("%s env variable is missing", name)
-	}
-	return variable
 }

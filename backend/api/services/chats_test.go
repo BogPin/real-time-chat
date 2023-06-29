@@ -185,19 +185,21 @@ func TestGetOneChatUserNotInChatError(t *testing.T) {
 	//Arrange
 	userId := 1
 	chatId := 1
+	expectedChat := models.Chat{Id: chatId, Title: "hejfe", CreatorId: 2, CreatedAt: "2023-06-10"}
 	expectedError := fmt.Errorf("user %d doesn't participate in chat %d", userId, chatId)
 	expectedHTTPError := utils.NewHttpError(expectedError, http.StatusForbidden)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	mockChatStorer := models_mocks.NewMockIChatStorer(ctrl)
+	mockChatStorer.EXPECT().GetOne(chatId).Return(&expectedChat, nil)
+
 	mockParticipantService := services_mocks.NewMockIParticipantService(ctrl)
 	mockParticipantService.
 		EXPECT().
 		UserInChat(userId, chatId).
 		Return(false, nil)
-
-	mockChatStorer := models_mocks.NewMockIChatStorer(ctrl)
 
 	chatsService := services.ChatService{
 		ChatStorer:         mockChatStorer,
@@ -228,10 +230,6 @@ func TestGetOneChatInternalError(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockParticipantService := services_mocks.NewMockIParticipantService(ctrl)
-	mockParticipantService.
-		EXPECT().
-		UserInChat(userId, expectedChat.Id).
-		Return(true, nil)
 
 	mockChatStorer := models_mocks.NewMockIChatStorer(ctrl)
 	mockChatStorer.

@@ -65,6 +65,15 @@ func (cs ChatService) Create(userId int, chatWithTitle models.ChatFromRequest) (
 }
 
 func (cs ChatService) GetOne(userId, chatId int) (*models.Chat, utils.HttpError) {
+	chat, err := cs.ChatStorer.GetOne(chatId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err := fmt.Errorf("no chat with id %d", chatId)
+			return nil, utils.NewHttpError(err, http.StatusNotFound)
+		}
+		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
+	}
+
 	userInChat, err := cs.ParticipantService.UserInChat(userId, chatId)
 	if err != nil {
 		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
@@ -75,14 +84,6 @@ func (cs ChatService) GetOne(userId, chatId int) (*models.Chat, utils.HttpError)
 		return nil, utils.NewHttpError(err, http.StatusForbidden)
 	}
 
-	chat, err := cs.ChatStorer.GetOne(chatId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			err := fmt.Errorf("no chat with id %d", chatId)
-			return nil, utils.NewHttpError(err, http.StatusNotFound)
-		}
-		return nil, utils.NewHttpError(err, http.StatusInternalServerError)
-	}
 	return chat, nil
 }
 

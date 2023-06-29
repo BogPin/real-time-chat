@@ -42,7 +42,7 @@ func (le LoginEndpoint) Handle(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, err)
 		return
 	}
-	resp := tokenBody{token}
+	resp := TokenBody{token}
 	jsonErr = json.NewEncoder(w).Encode(resp)
 	if jsonErr != nil {
 		WriteError(w, utils.NewHttpError(jsonErr, http.StatusInternalServerError))
