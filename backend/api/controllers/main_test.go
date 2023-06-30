@@ -38,6 +38,10 @@ var apiServer *httptest.Server
 var authServer *httptest.Server
 var authTokenN, authTokenB string
 
+type TokenBody struct {
+	Token string `json:"token"`
+}
+
 func getToken(cred authUser.Credentials) (string, error) {
 	jsonBody, _ := json.Marshal(cred)
 	loginEndpoint := fmt.Sprintf("%s/auth/login", authServer.URL)
@@ -45,7 +49,7 @@ func getToken(cred authUser.Credentials) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("Failed to create token: %v", err)
 	}
-	var tokenBody authControllers.TokenBody
+	var tokenBody TokenBody
 	err = json.NewDecoder(respToken.Body).Decode(&tokenBody)
 	if err != nil {
 		return "", fmt.Errorf("Failed to decode token response: %v", err)
