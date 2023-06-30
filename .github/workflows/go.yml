@@ -16,13 +16,13 @@ jobs:
     - name: Set up 
       uses: actions/setup-go@v3
       with:
-        go-version: 1.19
+        go-version: 1.20
 
-    - name: BuildAPI
-      working-directory: backend/api
-      run: go build -o bin/main
+
     - name: BuildAUTH
-      working-directory: backend/api
       run: cd backend/auth && go build -o bin/main && cd ../..
+    - name: BuildAPI
+      run: cd backend/api && go build -o bin/main && cd ../..
+   
     
 
