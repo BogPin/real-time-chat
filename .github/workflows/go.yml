@@ -19,8 +19,10 @@ jobs:
         go-version: 1.19
 
     - name: BuildAPI
+      working-directory: backend/api
       run: cd backend/api && go build -o bin/main && cd ../..
     - name: BuildAUTH
+      working-directory: backend/api
       run: cd backend/auth && go build -o bin/main && cd ../..
     
 
