@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/BogPin/real-time-chat/backend/api/utils"
-	authControllers "github.com/BogPin/real-time-chat/backend/auth/controllers"
+	"github.com/BogPin/real-time-chat/backend/auth/controllers"
 )
 
 type contextKey string
@@ -42,8 +42,7 @@ func GetAuthMiddleware(authService string, getToken func(r *http.Request) (strin
 				WriteError(w, utils.NewHttpError(err, http.StatusUnauthorized))
 				return
 			}
-
-			body := authControllers.TokenBody{Token: token}
+			body := controllers.TokenBody{Token: token}
 			buf := new(bytes.Buffer)
 			_ = json.NewEncoder(buf).Encode(body)
 			url := fmt.Sprintf("http://%s/auth/validate", authService)
