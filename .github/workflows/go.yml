@@ -20,7 +20,7 @@ jobs:
 
     - name: BuildAPI
       working-directory: backend/api
-      run: go build -o bin/main && 
+      run: go build -o bin/main
     - name: BuildAUTH
       working-directory: backend/api
       run: cd backend/auth && go build -o bin/main && cd ../..
